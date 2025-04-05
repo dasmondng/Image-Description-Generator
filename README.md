@@ -2,8 +2,15 @@
 Upload images to LLM (LM Studio) to generate a description
 
 # How to start
-Start the backend: python backend.py
-Start the frontend: streamlit run frontend.py / python -m streamlit run frontend.py
+Start the backend: 
+'''
+python backend.py
+'''
+Start the frontend: 
+'''
+streamlit run frontend.py 
+python -m streamlit run frontend.py
+'''
 
 # Progression Made
 - ✅ Able to connect to llm
