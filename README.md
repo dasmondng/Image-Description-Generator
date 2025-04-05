@@ -10,6 +10,10 @@ Start the frontend:
 ```
 python -m streamlit run frontend.py
 ```
+or
+```
+streamlit run frontend.py
+```
 
 # Progression Made
 - ✅ Able to connect to llm
