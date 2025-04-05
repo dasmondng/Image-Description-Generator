@@ -2,11 +2,11 @@
 Upload images to LLM (LM Studio) to generate a description
 
 # How to start
-Start the backend: 
+Start the **backend**: 
 ```
 python backend.py
 ```
-Start the frontend: 
+Start the **frontend**: 
 ```
 python -m streamlit run frontend.py
 ```
