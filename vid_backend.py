@@ -8,7 +8,7 @@ import os
 import cv2
 import tempfile
 import logging
-import mimetypes
+from typing import List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,11 +37,9 @@ ALLOWED_TYPES = {
 
 def validate_file_type(filename: str, content: bytes) -> str:
     """Validate file type using extension and content"""
-    # Check extension first
     ext = os.path.splitext(filename)[1].lower()
     for mime_type, extensions in ALLOWED_TYPES.items():
         if ext in extensions:
-            # Quick content validation
             if mime_type.startswith('image'):
                 try:
                     Image.open(BytesIO(content))
@@ -49,49 +47,52 @@ def validate_file_type(filename: str, content: bytes) -> str:
                 except:
                     continue
             elif mime_type == 'video/mp4':
-                # Basic MP4 header check (0x00 0x00 0x00 0x20 0x66 0x74 0x79 0x70)
                 if len(content) > 8 and content[4:8] == b'ftyp':
                     return mime_type
     raise ValueError("Unsupported or invalid file type")
 
-def encode_image(image: Image.Image):
+def encode_image(image: Image.Image) -> str:
+    """Convert PIL Image to base64"""
     img_byte_arr = BytesIO()
     image.save(img_byte_arr, format="JPEG", quality=85)
     return base64.b64encode(img_byte_arr.getvalue()).decode("utf-8")
 
-def extract_video_frame(video_path: str):
-    """Extract middle frame from video with error handling"""
+def extract_key_frames(video_path: str, num_frames: int = 3) -> List[Image.Image]:
+    """Extract evenly spaced key frames from video"""
+    frames = []
+    cap = cv2.VideoCapture(video_path)
     try:
-        cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
-            logger.error("Failed to open video file")
-            return None
+            raise ValueError("Could not open video file")
             
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        if total_frames == 0:
-            logger.error("Video has 0 frames")
-            return None
+        if total_frames < 1:
+            raise ValueError("Video has no frames")
             
-        target_frame = total_frames // 2
-        cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
-        ret, frame = cap.read()
-        cap.release()
+        num_frames = min(num_frames, total_frames)
         
-        if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            return Image.fromarray(frame)
-        else:
-            logger.error("Failed to read video frame")
-            return None
-    except Exception as e:
-        logger.error(f"Video processing error: {str(e)}")
-        return None
+        for i in range(num_frames):
+            frame_pos = int(total_frames * (i + 1) / (num_frames + 1))
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_pos)
+            ret, frame = cap.read()
+            if ret:
+                frames.append(Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
+            else:
+                logger.warning(f"Failed to read frame at position {frame_pos}")
+                
+        if not frames:
+            raise ValueError("No frames extracted")
+            
+    finally:
+        cap.release()
+    return frames
 
 @app.post("/describe")
 async def describe_media(
     file: UploadFile = File(...),
     model: str = Form("gemma-3-12b-it"),
-    prompt: str = Form("What is this media about?")
+    prompt: str = Form("What is this media about?"),
+    num_frames: int = Form(3)
 ):
     tmp_path = None
     try:
@@ -110,6 +111,13 @@ async def describe_media(
                 if image.mode != 'RGB':
                     image = image.convert('RGB')
                 base64_image = encode_image(image)
+                frame_contents = [{
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}",
+                        "detail": "auto"
+                    }
+                }]
             except Exception as e:
                 raise HTTPException(400, f"Invalid image file: {str(e)}")
 
@@ -117,12 +125,22 @@ async def describe_media(
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
                 tmp.write(content)
                 tmp_path = tmp.name
-            image = extract_video_frame(tmp_path)
-            if not image:
-                raise HTTPException(400, "Could not extract frame from video")
-            base64_image = encode_image(image)
+                
+            try:
+                frames = extract_key_frames(tmp_path, num_frames)
+                frame_contents = []
+                for frame in frames:
+                    base64_image = encode_image(frame)
+                    frame_contents.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}",
+                            "detail": "low"
+                        }
+                    })
+            except Exception as e:
+                raise HTTPException(400, f"Video processing failed: {str(e)}")
 
-        # Generate description (same as before)
         try:
             completion = client.chat.completions.create(
                 model=model,
@@ -131,19 +149,21 @@ async def describe_media(
                         "role": "user",
                         "content": [
                             {"type": "text", "text": prompt},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+                            *frame_contents
                         ],
                     }
                 ],
-                max_tokens=300  # Added limit
+                max_tokens=500
             )
             description = completion.choices[0].message.content
         except Exception as e:
             raise HTTPException(502, f"AI service error: {str(e)}")
 
         return {
-            "media_file": file.filename,  # Changed to match frontend
-            "description": description
+            "media_file": file.filename,
+            "description": description,
+            "processed_frames": len(frame_contents),
+            "frame_base64": frame_contents[0]["image_url"]["url"] if frame_contents else None
         }
 
     except HTTPException:
@@ -151,7 +171,6 @@ async def describe_media(
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(500, "Internal server error")
-
     finally:
         if tmp_path and os.path.exists(tmp_path):
             try:
