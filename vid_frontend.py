@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 import os
+from io import BytesIO
+import openpyxl 
 
 # Page setup
 st.set_page_config(page_title="Media Analysis", layout="wide")
@@ -10,9 +12,13 @@ st.write("Upload images/videos to analyze with AI")
 
 # Initialize or load DataFrame
 @st.cache_data
-def load_or_create_dataframe(filename='media_descriptions.csv'):
+def load_or_create_dataframe(filename='media_analysis.xlsx'):
     if os.path.isfile(filename):
-        return pd.read_csv(filename)
+        try:
+            return pd.read_excel(filename, engine='openpyxl')
+        except Exception as e:
+            st.warning(f"Couldn't read Excel file, creating new: {str(e)}")
+            return pd.DataFrame(columns=['media_file', 'description', 'frames_processed'])
     return pd.DataFrame(columns=['media_file', 'description', 'frames_processed'])
 
 df = load_or_create_dataframe()
@@ -107,21 +113,35 @@ if st.button("🚀 Analyze Media", type="primary"):
         if results:
             new_df = pd.DataFrame(results)
             df = pd.concat([df, new_df], ignore_index=True)
-            df.to_csv('media_descriptions.csv', index=False)
+            
+            # Save to Excel instead of CSV
+            excel_buffer = BytesIO()
+            with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='MediaAnalysis')
+            excel_buffer.seek(0)
+            
+            # Save to file
+            with open('media_analysis.xlsx', 'wb') as f:
+                f.write(excel_buffer.getvalue())
+                
             st.success(f"✅ Analyzed {len(results)} files!")
         else:
             st.info("No new files processed.")
-
+            
 # Display results
 st.subheader("📊 Analysis History")
 st.dataframe(df, use_container_width=True)
 
 # Download button
 if not df.empty:
-    csv = df.to_csv(index=False).encode('utf-8')
+    excel_buffer = BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='MediaAnalysis')
+    excel_buffer.seek(0)
+    
     st.download_button(
-        label="📥 Download CSV",
-        data=csv,
-        file_name='video_analysis.csv',
-        mime='text/csv',
+        label="📥 Download Excel",
+        data=excel_buffer,
+        file_name='media_analysis.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
