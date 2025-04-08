@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - API_URL=http://192.168.1.26:1234/v1  # Change if using different AI service
+      - API_KEY=lm-studio
+    volumes:
+      - ./backend:/app
+    networks:
+      - media-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      - BACKEND_URL=http://backend:3002  # Uses Docker's internal networking
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    networks:
+      - media-network
+    restart: unless-stopped
+
+networks:
+  media-network:
+    driver: bridge
