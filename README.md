@@ -8,7 +8,7 @@ Upload images to LLM (LM Studio) to generate a description
 - ✅ User can upload either image or video files
 - ✅ User can write their prompt
 - ✅ Able to generate a description
-- ✅ Creates an CSV file to upload the description
+- ✅ Creates an XLSX file to upload the description
 - ✅ Separate into frontend and backend files
 - ✅ Docker files
 
