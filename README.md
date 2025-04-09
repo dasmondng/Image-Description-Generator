@@ -2,7 +2,7 @@
 Upload images to LLM (LM Studio) to generate a description
 
 # Thing/s to Fix
-- Display for excel keeps flickering
+- Display for excel keeps flickering (fixed ✅)
 
 # Progression Made
 - ✅ User can upload either image or video files
