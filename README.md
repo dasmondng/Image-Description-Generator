@@ -1,19 +1,8 @@
 # Image-Description-Generator
 Upload images to LLM (LM Studio) to generate a description
 
-# How to start
-Start the **backend**: 
-```
-python backend.py
-```
-Start the **frontend**: 
-```
-python -m streamlit run frontend.py
-```
-or
-```
-streamlit run frontend.py
-```
+# Thing/s to Fix
+- Display for excel keeps flickering
 
 # Progression Made
 - ✅ User can upload either image or video files
@@ -21,6 +10,7 @@ streamlit run frontend.py
 - ✅ Able to generate a description
 - ✅ Creates an CSV file to upload the description
 - ✅ Separate into frontend and backend files
+- ✅ Docker files
 
 # Limitations
 - Only up to 5 frames of the video will be used for processing
