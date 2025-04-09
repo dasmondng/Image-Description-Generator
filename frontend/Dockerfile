@@ -1,4 +1,4 @@
-# Stage 1: Extract libz.so.1 and libz.so.1.2.13 from debian:bookworm-slim
+# Stage 1: Extract libz.so.1 from debian:bookworm-slim
 FROM debian:bookworm-slim AS zlib-extract
 
 RUN apt-get update && \
