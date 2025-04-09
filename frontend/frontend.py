@@ -130,7 +130,15 @@ if st.button("🚀 Analyze Media", type="primary"):
 
 # Display results
 st.subheader("📊 Analysis History")
-st.dataframe(df, width = 1200,use_container_width=False)
+# Use columns to create a fixed-width container
+st.dataframe(
+    df,
+    use_container_width=True,
+    height=350,
+    hide_index=True
+)
+    
+st.markdown("</div>", unsafe_allow_html=True)
 
 # Download button
 if not df.empty:
