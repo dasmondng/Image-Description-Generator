@@ -6,7 +6,7 @@ from io import BytesIO
 import openpyxl 
 
 # Page setup
-st.set_page_config(page_title="Media Analysis", layout="wide")
+st.set_page_config(page_title="Media Analysis", layout="centered")
 st.title("🎥 Media Analyzer")
 st.write("Upload images/videos to analyze with AI")
 
@@ -27,7 +27,7 @@ df = load_or_create_dataframe()
 with st.expander("⚙️ Settings", expanded=True):
     backend_url = st.text_input(
         "Backend API URL:", 
-        value="http://backend:3002"
+        value="http://description-backend:3002"
     )
     model = st.text_input("Model:", value="gemma-3-12b-it")
     prompt = st.text_input("Prompt:", value="Describe the key elements in this video")
