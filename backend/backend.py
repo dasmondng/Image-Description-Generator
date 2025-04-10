@@ -9,6 +9,7 @@ import cv2
 import tempfile
 import logging
 from typing import List
+import uvicorn
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -90,7 +91,7 @@ def extract_key_frames(video_path: str, num_frames: int = 3) -> List[Image.Image
 @app.post("/describe")
 async def describe_media(
     file: UploadFile = File(...),
-    model: str = Form("gemma-3-12b-it"),
+    model: str = Form("gemma-3-4b-it"),
     prompt: str = Form("What is this media about?"),
     num_frames: int = Form(3)
 ):
@@ -179,5 +180,4 @@ async def describe_media(
                 pass
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=3002)
