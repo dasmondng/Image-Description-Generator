@@ -29,7 +29,7 @@ with st.expander("⚙️ Settings", expanded=True):
         "Backend API URL:", 
         value="http://description-backend:3002"
     )
-    model = st.text_input("Model:", value="gemma-3-12b-it")
+    model = st.text_input("Model:", value="gemma-3-4b-it")
     prompt = st.text_input("Prompt:", value="Describe the key elements in this video")
     num_frames = st.slider("Frames to analyze", 3, 5, 4)
     max_file_size = 50
